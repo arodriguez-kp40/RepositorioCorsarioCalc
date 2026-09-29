@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Almacenamiento CCTV</title>
+    <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+    <main class="calculator-container">
+        <h1>Calculador de Almacenamiento (NVR/DVR)</h1>
+        
+        <!-- El formulario enviará los datos a index.php mediante el método POST -->
+        <form action="index.php" method="POST" id="form-calculadora">
+            
+            <div class="form-group">
+                <label for="camaras">Cantidad de cámaras:</label>
+                <input type="number" id="camaras" name="camaras" min="1" max="256" required 
+                       placeholder="Ej. 8">
+            </div>
+
+            <div class="form-group">
+                <label for="resolucion">Resolución:</label>
+                <select id="resolucion" name="resolucion" required>
+                    <option value="" disabled selected>Seleccione una opción</option>
+                    <option value="2">2MP (1080p)</option>
+                    <option value="4">4MP</option>
+                    <option value="5">5MP</option>
+                    <option value="8">8MP (4K)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="codec">Códec de compresión:</label>
+                <select id="codec" name="codec" required>
+                    <option value="" disabled selected>Seleccione un códec</option>
+                    <option value="H264">H.264</option>
+                    <option value="H265">H.265</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="fps">Cuadros por segundo (FPS):</label>
+                <input type="number" id="fps" name="fps" min="1" max="30" required 
+                       placeholder="1 a 30">
+            </div>
+
+            <div class="form-group">
+                <label for="horas_dia">Horas de grabación por día:</label>
+                <input type="number" id="horas_dia" name="horas_dia" min="1" max="24" required 
+                       placeholder="1 a 24">
+            </div>
+
+            <div class="form-group">
+                <label for="dias_retencion">Días de retención:</label>
+                <input type="number" id="dias_retencion" name="dias_retencion" min="1" max="365" required 
+                       placeholder="1 a 365">
+            </div>
+
+            <button type="submit" class="btn-submit">CALCULAR</button>
+            
+        </form>
+    </main>
+</body>
+</html>
