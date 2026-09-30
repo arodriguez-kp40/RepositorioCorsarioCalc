@@ -17,10 +17,24 @@ function calcularAlmacenamientoCCTV($datos) {
         8 => 12288
     ];
     
-    // Obtener bitrate base (si no existe, por defecto usamos 2MP)
-    $bitrateBase = isset($bitratesBase[$resolucion]) ? $bitratesBase[$resolucion] : 4096;
+    // Lista de códecs permitidos
+    $codecsPermitidos = ['H264', 'H265'];
+
+    // ==========================================
+    // VALIDACIÓN ESTRICTA (Protección contra el Inspector)
+    // ==========================================
+    // Si la resolución no existe en el arreglo, o si el códec no está en la lista permitida, 
+    // detenemos todo y retornamos un error.
+    if (!isset($bitratesBase[$resolucion]) || !in_array($codec, $codecsPermitidos)) {
+        return [
+            'error' => 'Error de seguridad: Se han detectado valores manipulados que no son válidos.'
+        ];
+    }
     
-    // Asignar Factor de códec
+    // Obtener bitrate base validado (ya no asume 2MP por defecto)
+    $bitrateBase = $bitratesBase[$resolucion];
+    
+    // Asignar Factor de códec validado
     $factorCodec = ($codec === 'H265') ? 0.5 : 1.0;
 
     // Fórmula: bitrateCamara
@@ -56,10 +70,10 @@ function calcularAlmacenamientoCCTV($datos) {
 
     // Retornar los resultados empaquetados
     return [
-        'bitrateCamara' => $bitrateCamara,
-        'gbCamDia'      => $gbCamDia,
-        'tbTotales'     => $tbTotales,
-        'tbMargen'      => $tbMargen,
+        'bitrateCamara'    => $bitrateCamara,
+        'gbCamDia'         => $gbCamDia,
+        'tbTotales'        => $tbTotales,
+        'tbMargen'         => $tbMargen,
         'discoRecomendado' => $discoRecomendado
     ];
 }
