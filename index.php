@@ -1,16 +1,12 @@
 <?php
-// 1. Importamos la lógica matemática
 require_once 'funciones.php';
 
-// 2. Inicializamos las variables
 $resultados = null;
 $datosIngresados = [];
-$errores = []; // Nuevo arreglo para guardar los errores de validación
+$errores = [];
 
-// 3. Verificamos si el usuario presionó "CALCULAR"
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
-    // Recolectar datos. Usamos cadena vacía por defecto para las validaciones
     $datosIngresados = [
         'camaras'        => $_POST['camaras'] ?? '',
         'resolucion'     => $_POST['resolucion'] ?? '',
@@ -21,38 +17,84 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     ];
 
     // ==========================================
-    // VALIDACIONES DEL SERVIDOR
+    // VALIDACIONES ESTRICTAS EN CASCADA
     // ==========================================
-    
-    if (empty($datosIngresados['camaras']) || $datosIngresados['camaras'] < 1 || $datosIngresados['camaras'] > 256) {
-        $errores['camaras'] = "Ingresa un número válido de cámaras (1-256).";
+    // Esta variable nos avisará si un campo superior falló,
+    // para bloquear y mostrar error en todos los campos inferiores.
+    $huboErrorPrevio = false;
+    $mensajeCascada = "Corrige el error en el campo anterior primero.";
+
+    // 1. Cámaras
+    if ($huboErrorPrevio) {
+        $errores['camaras'] = $mensajeCascada;
+    } else {
+        if ($datosIngresados['camaras'] === '' || filter_var($datosIngresados['camaras'], FILTER_VALIDATE_INT) === false || $datosIngresados['camaras'] < 1 || $datosIngresados['camaras'] > 256) {
+            $errores['camaras'] = "Especifica un número entero válido (1 a 256).";
+            $huboErrorPrevio = true;
+        }
     }
 
-    if (!in_array($datosIngresados['resolucion'], ['2', '4', '5', '8'])) {
-        $errores['resolucion'] = "Por favor, selecciona una resolución válida.";
+    // 2. Resolución
+    if ($huboErrorPrevio) {
+        $errores['resolucion'] = $mensajeCascada;
+    } else {
+        if ($datosIngresados['resolucion'] === '' || !in_array($datosIngresados['resolucion'], ['2', '4', '5', '8'], true)) {
+            $errores['resolucion'] = "Especifica una resolución válida de la lista.";
+            $huboErrorPrevio = true;
+        }
     }
 
-    if (!in_array($datosIngresados['codec'], ['H264', 'H265'])) {
-        $errores['codec'] = "Por favor, selecciona un códec válido.";
+    // 3. Códec
+    if ($huboErrorPrevio) {
+        $errores['codec'] = $mensajeCascada;
+    } else {
+        if ($datosIngresados['codec'] === '' || !in_array($datosIngresados['codec'], ['H264', 'H265'], true)) {
+            $errores['codec'] = "Especifica un códec válido de la lista.";
+            $huboErrorPrevio = true;
+        }
     }
 
-    if (empty($datosIngresados['fps']) || $datosIngresados['fps'] < 1 || $datosIngresados['fps'] > 30) {
-        $errores['fps'] = "Los FPS deben estar entre 1 y 30.";
+    // 4. FPS
+    if ($huboErrorPrevio) {
+        $errores['fps'] = $mensajeCascada;
+    } else {
+        if ($datosIngresados['fps'] === '' || filter_var($datosIngresados['fps'], FILTER_VALIDATE_INT) === false || $datosIngresados['fps'] < 1 || $datosIngresados['fps'] > 30) {
+            $errores['fps'] = "Especifica los cuadros por segundo (1 a 30).";
+            $huboErrorPrevio = true;
+        }
     }
 
-    if (empty($datosIngresados['horas_dia']) || $datosIngresados['horas_dia'] < 1 || $datosIngresados['horas_dia'] > 24) {
-        $errores['horas_dia'] = "Las horas deben ser de 1 a 24.";
+    // 5. Horas por día
+    if ($huboErrorPrevio) {
+        $errores['horas_dia'] = $mensajeCascada;
+    } else {
+        if ($datosIngresados['horas_dia'] === '' || filter_var($datosIngresados['horas_dia'], FILTER_VALIDATE_INT) === false || $datosIngresados['horas_dia'] < 1 || $datosIngresados['horas_dia'] > 24) {
+            $errores['horas_dia'] = "Especifica las horas de grabación (1 a 24).";
+            $huboErrorPrevio = true;
+        }
     }
 
-    if (empty($datosIngresados['dias_retencion']) || $datosIngresados['dias_retencion'] < 1 || $datosIngresados['dias_retencion'] > 365) {
-        $errores['dias_retencion'] = "Los días de retención deben ser de 1 a 365.";
+    // 6. Retención
+    if ($huboErrorPrevio) {
+        $errores['dias_retencion'] = $mensajeCascada;
+    } else {
+        if ($datosIngresados['dias_retencion'] === '' || filter_var($datosIngresados['dias_retencion'], FILTER_VALIDATE_INT) === false || $datosIngresados['dias_retencion'] < 1 || $datosIngresados['dias_retencion'] > 365) {
+            $errores['dias_retencion'] = "Especifica los días de retención (1 a 365).";
+            $huboErrorPrevio = true;
+        }
     }
 
     // ==========================================
-    // CÁLCULO (Solo si no hay errores)
+    // CÁLCULO (Solo si no hubo intentos de romper el formulario)
     // ==========================================
     if (empty($errores)) {
         $resultados = calcularAlmacenamientoCCTV($datosIngresados);
+        
+        // Si la función nos devuelve el array de error (por manipulación avanzada)
+        if (isset($resultados['error'])) {
+            $errores['general'] = $resultados['error'];
+            $resultados = null; // Anulamos los resultados para que no intente imprimirlos
+        }
     }
 }
 ?>
@@ -77,6 +119,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .input-error {
             border: 2px solid #e50914 !important;
         }
+        /* Error general que viene de funciones.php */
+        .alerta-general {
+            background-color: #330000;
+            color: #e50914;
+            padding: 15px;
+            border: 1px solid #e50914;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -84,7 +137,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         <?php if ($resultados && empty($errores)): ?>
             <!-- ========================================== -->
-            <!-- VISTA DE RESULTADOS (Se muestra si se calculó sin errores) -->
+            <!-- VISTA DE RESULTADOS -->
             <!-- ========================================== -->
             <h1>Resultados del Cálculo</h1>
             
@@ -106,10 +159,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <?php endif; ?>
 
         <!-- ========================================== -->
-        <!-- FORMULARIO (Mantiene los datos y muestra errores) -->
+        <!-- FORMULARIO -->
         <!-- ========================================== -->
         <form action="index.php" method="POST" id="form-calculadora">
             
+            <?php if(isset($errores['general'])): ?>
+                <div class="alerta-general"><?php echo $errores['general']; ?></div>
+            <?php endif; ?>
+
             <div class="form-group">
                 <label for="camaras">Cantidad de cámaras:</label>
                 <input type="number" id="camaras" name="camaras" placeholder="Ej. 8" 
