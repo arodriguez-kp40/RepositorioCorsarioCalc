@@ -19,8 +19,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // ==========================================
     // VALIDACIONES ESTRICTAS EN CASCADA
     // ==========================================
-    // Esta variable nos avisará si un campo superior falló,
-    // para bloquear y mostrar error en todos los campos inferiores.
     $huboErrorPrevio = false;
     $mensajeCascada = "Corrige el error en el campo anterior primero.";
 
@@ -85,15 +83,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // ==========================================
-    // CÁLCULO (Solo si no hubo intentos de romper el formulario)
+    // CÁLCULO
     // ==========================================
     if (empty($errores)) {
         $resultados = calcularAlmacenamientoCCTV($datosIngresados);
         
-        // Si la función nos devuelve el array de error (por manipulación avanzada)
         if (isset($resultados['error'])) {
             $errores['general'] = $resultados['error'];
-            $resultados = null; // Anulamos los resultados para que no intente imprimirlos
+            $resultados = null; 
         }
     }
 }
@@ -105,61 +102,88 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculadora de Almacenamiento CCTV</title>
-    <link rel="stylesheet" href="estilos.css">
-    <style>
-        /* Estilo para los mensajes de error */
-        .error-msg {
-            color: #e50914; /* Rojo para destacar el error */
-            font-size: 13px;
-            margin-top: 5px;
-            display: block;
-            font-weight: bold;
-        }
-        /* Resalta el borde del input si tiene error */
-        .input-error {
-            border: 2px solid #e50914 !important;
-        }
-        /* Error general que viene de funciones.php */
-        .alerta-general {
-            background-color: #330000;
-            color: #e50914;
-            padding: 15px;
-            border: 1px solid #e50914;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: bold;
-        }
-    </style>
+    <link rel="stylesheet" href="estilos.css?v=<?php echo time(); ?>">
 </head>
 <body>
-    <main class="calculator-container" <?php if($resultados) echo 'style="max-width: 600px;"'; ?>>
+    <main class="calculator-container <?php echo ($resultados && empty($errores)) ? 'results-mode' : ''; ?>">
         
         <?php if ($resultados && empty($errores)): ?>
             <!-- ========================================== -->
-            <!-- VISTA DE RESULTADOS -->
+            <!-- VISTA DE RESULTADOS Y DATOS INGRESADOS -->
             <!-- ========================================== -->
-            <h1>Resultados del Cálculo</h1>
+            <h1 class="main-title">Resultados del Cálculo</h1>
             
-            <div class="form-group" style="background-color: #242424; padding: 20px; border-radius: 4px; border-left: 4px solid #e50914; margin-bottom: 25px;">
-                <ul style="list-style: none; color: #ffffff; line-height: 2; font-size: 15px;">
-                    <li><strong>1. Bitrate por cámara:</strong> <?php echo number_format($resultados['bitrateCamara'], 2); ?> kbps</li>
-                    <li><strong>2. Almacenamiento cámara/día:</strong> <?php echo number_format($resultados['gbCamDia'], 2); ?> GB</li>
-                    <li><strong>3. Almacenamiento Total (Neto):</strong> <?php echo number_format($resultados['tbTotales'], 2); ?> TB</li>
-                    <li><strong>4. Almacenamiento (+20% Margen):</strong> <?php echo number_format($resultados['tbMargen'], 2); ?> TB</li>
-                    
-                    <li style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #333333; font-size: 18px; color: #e50914;">
-                        <strong>5. Disco Recomendado: <br> <?php echo $resultados['discoRecomendado']; ?></strong>
+            <!-- SECCIÓN 1: DATOS INGRESADOS (MODULAR GRID CSS) -->
+            <section class="card-seccion seccion-datos">
+                <h2 class="card-titulo">Datos Ingresados</h2>
+                <div class="datos-grid">
+                    <div class="dato-box">
+                        <span class="dato-etiqueta">Cámaras</span>
+                        <span class="dato-valor"><?php echo htmlspecialchars($datosIngresados['camaras']); ?></span>
+                    </div>
+                    <div class="dato-box">
+                        <span class="dato-etiqueta">Resolución</span>
+                        <span class="dato-valor">
+                            <?php 
+                                $textosResolucion = ['2' => '2MP (1080p)', '4' => '4MP', '5' => '5MP', '8' => '8MP (4K)'];
+                                echo htmlspecialchars($textosResolucion[$datosIngresados['resolucion']] ?? $datosIngresados['resolucion']); 
+                            ?>
+                        </span>
+                    </div>
+                    <div class="dato-box">
+                        <span class="dato-etiqueta">Códec</span>
+                        <span class="dato-valor"><?php echo htmlspecialchars($datosIngresados['codec']); ?></span>
+                    </div>
+                    <div class="dato-box">
+                        <span class="dato-etiqueta">FPS</span>
+                        <span class="dato-valor"><?php echo htmlspecialchars($datosIngresados['fps']); ?></span>
+                    </div>
+                    <div class="dato-box">
+                        <span class="dato-etiqueta">Horas / Día</span>
+                        <span class="dato-valor"><?php echo htmlspecialchars($datosIngresados['horas_dia']); ?> hrs</span>
+                    </div>
+                    <div class="dato-box">
+                        <span class="dato-etiqueta">Retención</span>
+                        <span class="dato-valor"><?php echo htmlspecialchars($datosIngresados['dias_retencion']); ?> días</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: RESULTADOS OBTENIDOS -->
+            <section class="card-seccion seccion-resultados">
+                <h2 class="card-titulo">Almacenamiento Calculado</h2>
+                <ul class="resultados-lista">
+                    <li class="resultado-item">
+                        <span class="res-texto"><strong class="res-num">1.</strong> Bitrate por cámara</span>
+                        <span class="res-valor"><?php echo number_format($resultados['bitrateCamara'], 2); ?> kbps</span>
+                    </li>
+                    <li class="resultado-item">
+                        <span class="res-texto"><strong class="res-num">2.</strong> Almacenamiento cámara/día</span>
+                        <span class="res-valor"><?php echo number_format($resultados['gbCamDia'], 2); ?> GB</span>
+                    </li>
+                    <li class="resultado-item">
+                        <span class="res-texto"><strong class="res-num">3.</strong> Almacenamiento Total (Neto)</span>
+                        <span class="res-valor"><?php echo number_format($resultados['tbTotales'], 2); ?> TB</span>
+                    </li>
+                    <li class="resultado-item">
+                        <span class="res-texto"><strong class="res-num">4.</strong> Almacenamiento (+20% Margen)</span>
+                        <span class="res-valor"><?php echo number_format($resultados['tbMargen'], 2); ?> TB</span>
                     </li>
                 </ul>
-            </div>
-            <h2 style="text-align: center; color: #b3b3b3; font-size: 18px; margin-bottom: 20px; text-transform: uppercase;">Ajustar Parámetros</h2>
+
+                <div class="disco-recomendado-box">
+                    <span class="disco-etiqueta">5. Disco Recomendado</span>
+                    <span class="disco-resultado"><?php echo $resultados['discoRecomendado']; ?></span>
+                </div>
+            </section>
+            
+            <h2 class="ajustar-titulo">Ajustar Parámetros</h2>
         <?php else: ?>
-            <h1>Calculador de Almacenamiento (NVR/DVR)</h1>
+            <h1 class="main-title">Calculador de Almacenamiento (NVR/DVR)</h1>
         <?php endif; ?>
 
         <!-- ========================================== -->
-        <!-- FORMULARIO -->
+        <!-- FORMULARIO DE ENTRADA -->
         <!-- ========================================== -->
         <form action="index.php" method="POST" id="form-calculadora">
             
@@ -226,11 +250,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </button>
             
             <?php if ($resultados || !empty($errores)): ?>
-                <a href="index.php" style="display: block; text-align: center; color: #b3b3b3; text-decoration: none; margin-top: 15px; font-size: 14px;">Limpiar y empezar de nuevo</a>
+                <a href="index.php" class="reset-link">Limpiar y empezar de nuevo</a>
             <?php endif; ?>
 
         </form>
-
     </main>
 </body>
 </html>
